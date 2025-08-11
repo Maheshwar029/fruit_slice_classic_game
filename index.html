@@ -1,0 +1,2699 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Fruit Ninja Slice</title>
+     <!-- Tailwind CSS CDN - Added for menu styling -->
+     <script src="https://cdn.tailwindcss.com"></script>
+     <style>
+          /* Base body styling from original game, adjusted for menu background */
+          body {
+               margin: 0;
+               padding: 0;
+               font-family: 'Inter', sans-serif;
+               /* Changed to Inter for consistency */
+               overflow: hidden;
+               /* Background from the main menu for consistency */
+               background-image: url("image1.jpg");
+               /* Green to Yellow gradient */
+               background-size: cover;
+               background-position: center;
+               background-attachment: fixed;
+               height: 100vh;
+               user-select: none;
+               display: flex;
+               /* Use flexbox to center content */
+               justify-content: center;
+               align-items: center;
+          }
+
+          /* New CSS rule for when the game is active - from original game */
+          body.game-active {
+               cursor: none;
+               /* Hide cursor only when game is active */
+          }
+
+          #game-container {
+               position: relative;
+               width: 100%;
+               height: 100vh;
+               display: flex;
+               justify-content: center;
+               align-items: center;
+               overflow: hidden;
+               /* Ensure screen shake doesn't show scrollbars */
+          }
+
+          /* Animation for Frenzy Mode visual effect - from original game */
+          @keyframes frenzyPulse {
+               0% {
+                    box-shadow: inset 0 0 30px 15px rgba(255, 215, 0, 0.5);
+               }
+
+               50% {
+                    box-shadow: inset 0 0 50px 25px rgba(255, 165, 0, 0.8);
+               }
+
+               100% {
+                    box-shadow: inset 0 0 30px 15px rgba(255, 165, 0, 0.5);
+               }
+          }
+
+          .frenzy-active {
+               animation: frenzyPulse 0.5s infinite;
+          }
+
+          /* Screen shake effect - from original game */
+          @keyframes shake {
+               0% {
+                    transform: translate(0, 0);
+               }
+
+               25% {
+                    transform: translate(-5px, 5px);
+               }
+
+               50% {
+                    transform: translate(5px, -5px);
+               }
+
+               75% {
+                    transform: translate(-5px, -5px);
+               }
+
+               100% {
+                    transform: translate(0, 0);
+               }
+          }
+
+          .screen-shake {
+               animation: shake 0.1s ease-in-out;
+               /* Quick shake */
+               animation-iteration-count: 3;
+               /* Repeat a few times */
+          }
+
+          canvas {
+               display: block;
+               /* Changed background-color to transparent to remove any visible square */
+               background-color: transparent;
+               position: absolute;
+               /* Position canvas behind other elements */
+               top: 0;
+               left: 0;
+               width: 100%;
+               height: 100%;
+               z-index: 1;
+               /* Ensure canvas is behind control panel */
+          }
+
+          /* Score display container */
+          #score-display-container {
+               position: absolute;
+               top: 30px;
+               left: 30px;
+               display: flex;
+               z-index: 100;
+               /* No floating animation */
+          }
+
+          #score-watermelon-emoji {
+               font-size: 45px;
+          }
+
+          /* Score text styling - Mimicking the golden, embossed style from the image */
+          #score-display {
+               font-family: 'Luckiest Guy', cursive;
+               font-size: 45px;
+               line-height: 1;
+               font-weight: 400;
+               z-index: 100;
+               /* Golden gradient for text color */
+               background: linear-gradient(to bottom, #fef17d 0%, #e59c20 100%);
+               -webkit-background-clip: text;
+               background-clip: text;
+               color: transparent;
+               /* Subtle shadow for depth */
+               text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
+               padding-right: 10px;
+               letter-spacing: -2px;
+          }
+
+          #high-score-display {
+               font-family: 'Luckiest Guy', cursive;
+               font-style: italic;
+               font-size: 25px;
+               font-weight: 400;
+               position: fixed;
+               display: block;
+               top: 80px;
+               left: 30px;
+               /* Golden gradient for text color */
+               background: linear-gradient(to bottom, #fef17d 0%, #e59c20 100%);
+               -webkit-background-clip: text;
+               background-clip: text;
+               color: transparent;
+               /* Subtle shadow for depth */
+               text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
+               letter-spacing: -2px;
+
+
+          }
+
+          /* Pause button styling - from original game */
+          #pause-btn {
+               position: absolute;
+               top: 20px;
+               right: 20px;
+               /* Positioned on the right for better visibility next to score */
+               background: rgba(255, 255, 255, 0.3);
+               /* Semi-transparent background */
+               color: white;
+               border: 2px solid rgba(255, 255, 255, 0.5);
+               width: 50px;
+               /* Make it a square for the icon */
+               height: 50px;
+               display: flex;
+               /* Use flexbox to center content */
+               justify-content: center;
+               align-items: center;
+               font-size: 1.8rem;
+               /* Size for the icon */
+               border-radius: 10px;
+               cursor: pointer;
+               z-index: 100;
+               display: none;
+               /* Hidden by default */
+               transition: background 0.2s, border-color 0.2s;
+               backdrop-filter: blur(5px);
+               font-weight: bold;
+               text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+               padding: 0;
+               /* Remove padding for better icon centering */
+          }
+
+          #pause-btn:hover {
+               background: rgba(255, 255, 255, 0.5);
+               border-color: rgba(255, 255, 255, 0.8);
+          }
+
+          /* Timer display styling - from original game */
+          #timer-display {
+               position: absolute;
+               top: 20px;
+               right: 90px;
+               /* Positioned to the left of the pause button */
+               background: rgba(0, 0, 0, 0.5);
+               /* Darker background for contrast */
+               color: white;
+               border: 2px solid rgba(255, 255, 255, 0.5);
+               padding: 10px 15px;
+               font-size: 1.2rem;
+               border-radius: 10px;
+               z-index: 100;
+               display: none;
+               /* Hidden by default */
+               backdrop-filter: blur(5px);
+               font-weight: bold;
+               text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+          }
+
+          /* Sound control button styling (now part of the flow) - from original game */
+          #sound-btn {
+               background: linear-gradient(45deg, #4CAF50, #8BC34A);
+               /* Green gradient for the sound button */
+               color: white;
+               /* Ensure icon is white */
+               border: none;
+               /* Remove border as gradient handles it */
+               width: 50px;
+               height: 50px;
+               display: inline-flex;
+               /* Changed to inline-flex to sit next to other buttons */
+               justify-content: center;
+               align-items: center;
+               font-size: 1.8rem;
+               border-radius: 10px;
+               cursor: pointer;
+               z-index: 100;
+               /* Still needs z-index to be above canvas */
+               transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+               /* Smooth transition */
+               box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+               /* Add shadow */
+               outline: none;
+               font-weight: bold;
+               text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+               padding: 0;
+               margin: 1rem 0.5rem;
+               /* Match other button margins */
+               position: relative;
+               /* Needed for ::before pseudo-element */
+               overflow: hidden;
+               /* Needed for ::before pseudo-element */
+          }
+
+          #sound-btn:hover {
+               background: linear-gradient(45deg, #388E3C, #689F38);
+               /* Darker green on hover */
+               transform: translateY(-5px) scale(1.02);
+               /* Match other button hover effects */
+               box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+               /* Match other button hover effects */
+          }
+
+          #sound-btn::before {
+               /* Add ripple effect to sound button */
+               content: '';
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               width: 300%;
+               height: 300%;
+               background: rgba(255, 255, 255, 0.15);
+               /* Light ripple effect */
+               border-radius: 50%;
+               transform: translate(-50%, -50%) scale(0);
+               opacity: 0;
+               transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+          }
+
+          #sound-btn:hover::before {
+               transform: translate(-50%, -50%) scale(1);
+               opacity: 1;
+          }
+
+
+          #control-panel {
+               /* This panel will now only house the game over and pause screens, hidden by default */
+               display: none;
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               transform: translate(-50%, -50%);
+               background: radial-gradient(circle at center, rgba(255, 255, 255, 0.98) 0%, rgba(240, 240, 240, 0.95) 100%);
+               padding: 3rem 4rem;
+               border-radius: 20px;
+               text-align: center;
+               box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(255, 255, 255, 0.3) inset;
+               z-index: 200;
+               backdrop-filter: blur(8px);
+               border: 2px solid rgba(255, 255, 255, 0.5);
+               transition: opacity 0.5s ease-in-out;
+               opacity: 0;
+               pointer-events: none;
+          }
+
+          h1 {
+               margin: 0 0 1.5rem 0;
+               color: #333;
+               font-size: 3rem;
+               letter-spacing: 2px;
+               text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+               background: linear-gradient(90deg, #FF5722, #FF9800);
+               -webkit-background-clip: text;
+               -webkit-text-fill-color: transparent;
+               font-weight: 900;
+          }
+
+          p {
+               color: #555;
+               margin-bottom: 2.5rem;
+               font-size: 1.2rem;
+               line-height: 1.8;
+               max-width: 400px;
+               margin-left: auto;
+               margin-right: auto;
+          }
+
+          /* Buttons from original game, adjusted for consistency */
+          #start-btn,
+          #restart-btn,
+          #main-menu-btn,
+          .temp-btn {
+               /* Added .temp-btn for pause menu buttons */
+               background: linear-gradient(45deg, #4CAF50, #8BC34A);
+               /* Green gradient for buttons */
+               color: white;
+               border: none;
+               padding: 1.2rem 2.5rem;
+               font-size: 1.5rem;
+               border-radius: 50px;
+               cursor: pointer;
+               margin: 1rem 0.5rem;
+               /* Adjusted margin for spacing */
+               transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+               /* Smooth transition */
+               box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+               outline: none;
+               font-weight: bold;
+               text-transform: uppercase;
+               letter-spacing: 1px;
+               position: relative;
+               overflow: hidden;
+          }
+
+          #main-menu-btn,
+          #pause-main-menu-btn {
+               /* Apply orange gradient to main menu buttons */
+               background: linear-gradient(45deg, #FF5722, #FF9800);
+          }
+
+          #start-btn:hover,
+          #restart-btn:hover,
+          .temp-btn:hover {
+               background: linear-gradient(45deg, #388E3C, #689F38);
+               /* Darker green on hover */
+               transform: translateY(-5px) scale(1.02);
+               box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+          }
+
+          #main-menu-btn:hover,
+          #pause-main-menu-btn:hover {
+               background: linear-gradient(45deg, #E64A19, #F57C00);
+               /* Darker orange on hover */
+               transform: translateY(-5px) scale(1.02);
+               box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+          }
+
+          #start-btn::before,
+          #restart-btn::before,
+          #main-menu-btn::before,
+          .temp-btn::before {
+               content: '';
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               width: 300%;
+               height: 300%;
+               background: rgba(255, 255, 255, 0.15);
+               /* Light ripple effect */
+               border-radius: 50%;
+               transform: translate(-50%, -50%) scale(0);
+               opacity: 0;
+               transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+          }
+
+          #start-btn:hover::before,
+          #restart-btn:hover::before,
+          #main-menu-btn:hover::before,
+          .temp-btn:hover::before {
+               transform: translate(-50%, -50%) scale(1);
+               opacity: 1;
+          }
+
+          #start-screen,
+          #game-over,
+          #pause-screen {
+               /* All control screens hidden by default */
+               display: none;
+          }
+
+          #final-score {
+               font-size: 2rem;
+               color: #FF5722;
+               margin: 1.5rem 0;
+               font-weight: normal;
+               text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+          }
+
+          /* Sound control modal styling - from original game */
+          #sound-modal {
+               display: none;
+               /* Hidden by default */
+               position: fixed;
+               z-index: 300;
+               /* Above everything else */
+               left: 0;
+               top: 0;
+               width: 100%;
+               height: 100%;
+               overflow: auto;
+               background-color: rgba(0, 0, 0, 0.7);
+               /* Dim background */
+               backdrop-filter: blur(5px);
+               justify-content: center;
+               align-items: center;
+          }
+
+          .sound-modal-content {
+               background: radial-gradient(circle at center, rgba(255, 255, 255, 0.98) 0%, rgba(240, 240, 240, 0.95) 100%);
+               margin: auto;
+               padding: 40px;
+               border-radius: 20px;
+               box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+               width: 80%;
+               max-width: 400px;
+               text-align: center;
+               position: relative;
+               border: 2px solid rgba(255, 255, 255, 0.5);
+          }
+
+          .sound-modal-content h2 {
+               margin-top: 0;
+               color: #333;
+               font-size: 2.5rem;
+               background: linear-gradient(90deg, #4CAF50, #8BC34A);
+               /* Green gradient for title */
+               -webkit-background-clip: text;
+               -webkit-text-fill-color: transparent;
+               font-weight: 900;
+               margin-bottom: 25px;
+          }
+
+          .sound-slider-group {
+               margin-bottom: 25px;
+               text-align: left;
+          }
+
+          .sound-slider-group label {
+               display: block;
+               margin-bottom: 10px;
+               font-size: 1.2rem;
+               color: #555;
+               font-weight: bold;
+          }
+
+          .sound-slider-group input[type="range"] {
+               width: 100%;
+               height: 10px;
+               border-radius: 5px;
+               background: #d3d3d3;
+               outline: none;
+               -webkit-appearance: none;
+               /* Remove default styling */
+               appearance: none;
+          }
+
+          /* Webkit (Chrome, Safari) specific styling for slider thumb */
+          .sound-slider-group input[type="range"]::-webkit-slider-thumb {
+               -webkit-appearance: none;
+               appearance: none;
+               width: 25px;
+               height: 25px;
+               border-radius: 50%;
+               background: #4CAF50;
+               /* Green thumb */
+               cursor: pointer;
+               box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+               border: 2px solid #fff;
+          }
+
+          /* Mozilla (Firefox) specific styling for slider thumb */
+          .sound-slider-group input[type="range"]::-moz-range-thumb {
+               width: 25px;
+               height: 25px;
+               border-radius: 50%;
+               background: #4CAF50;
+               /* Green thumb */
+               cursor: pointer;
+               box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+               border: 2px solid #fff;
+          }
+
+          .sound-close-btn {
+               background: linear-gradient(45deg, #FF5722, #FF9800);
+               /* Orange gradient for close button */
+               color: white;
+               border: none;
+               padding: 12px 25px;
+               font-size: 1.1rem;
+               border-radius: 50px;
+               cursor: pointer;
+               margin-top: 25px;
+               transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+               box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+               outline: none;
+               font-weight: bold;
+               text-transform: uppercase;
+          }
+
+          .sound-close-btn:hover {
+               background: linear-gradient(45deg, #E64A19, #F57C00);
+               transform: translateY(-3px);
+               box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+          }
+
+          /* Music specific styling if needed, though general slider styles apply */
+          #background-music {
+               position: absolute;
+               bottom: 0;
+               left: 0;
+               visibility: hidden;
+               /* Hidden from user, controlled by script */
+          }
+
+          /* --- Main Menu Specific Styles --- */
+          /* New styles for the main menu title to match the image */
+          .game-title-container {
+               position: absolute;
+               top: 10%;
+               /* Position above the central elements */
+               left: 50%;
+               transform: translateX(-50%);
+               display: flex;
+               flex-direction: column;
+               align-items: center;
+               line-height: 0.8;
+               /* Reduce line height for stacked text */
+               z-index: 20;
+               /* Ensure text is above SVGs */
+               width: 90%;
+               /* Allow title to span wider */
+               max-width: 600px;
+               pointer-events: none;
+               /* Make it non-interactive */
+          }
+
+          .game-title-fruit {
+               font-family: 'Arial Black', sans-serif;
+               /* A bold, blocky font */
+               font-size: 5rem;
+               /* Larger size for "FRUIT" */
+               font-weight: 900;
+               text-shadow:
+                    -3px -3px 0 #FFEB3B,
+                    /* Yellow border */
+                    3px -3px 0 #FFEB3B,
+                    -3px 3px 0 #FFEB3B,
+                    3px 3px 0 #FFEB3B,
+                    0 0 15px rgba(0, 0, 0, 0.5);
+               /* Soft shadow */
+               background: linear-gradient(90deg, #FF5722, #FF9800);
+               -webkit-background-clip: text;
+               -webkit-text-fill-color: transparent;
+               letter-spacing: 2px;
+          }
+
+          .game-title-slice {
+               font-family: 'Impact', sans-serif;
+               /* A tall, narrow font */
+               font-size: 3.5rem;
+               /* Size for "NINJA" */
+               font-weight: normal;
+               text-shadow:
+                    -2px -2px 0 #389e23,
+                    /* Dark border */
+                    2px -2px 0 #333,
+                    -2px 2px 0 #333,
+                    2px 2px 0 #333,
+                    0 0 10px rgba(0, 0, 0, 0.4);
+               background: linear-gradient(90deg, #A9A9A9, #D3D3D3);
+               -webkit-background-clip: text;
+               -webkit-text-fill-color: transparent;
+               letter-spacing: 1px;
+               margin-top: -1.5rem;
+               outline: #D3D3D3;
+               /* Pull "NINJA" closer to "FRUIT" */
+          }
+
+          .game-title-classic {
+               font-family: 'Arial', sans-serif;
+               /* Simple font for "CLASSIC" */
+               font-size: 2rem;
+               font-weight: bold;
+               color: #D32F2F;
+               /* Red color */
+               text-shadow: 1px 1px 0 #FFEB3B;
+               /* Yellow offset shadow */
+               margin-top: -1rem;
+               /* Pull "CLASSIC" closer */
+          }
+
+          /* New container for buttons, positioned outside the oval */
+          .main-menu-buttons-wrapper {
+               position: absolute;
+               bottom: 5%;
+               /* Position at the bottom */
+               left: 50%;
+               transform: translateX(-50%);
+               display: flex;
+               /* Arrange horizontally */
+               flex-direction: row;
+               /* Horizontal layout */
+               justify-content: center;
+               /* Center buttons horizontally */
+               align-items: center;
+               gap: 1.5rem;
+               /* Space between buttons */
+               z-index: 20;
+               /* Ensure buttons are above SVGs */
+               width: 90%;
+               /* Allow buttons to span wider */
+               max-width: 800px;
+               /* Limit max width for better appearance */
+               pointer-events: auto;
+               /* Ensure buttons are clickable */
+          }
+
+          /* Buttons from original game, adjusted for consistency */
+          .main-menu-button {
+               display: block;
+               /* Removed fixed width to allow flexbox to manage */
+               margin: 0;
+               /* Remove individual margins as gap handles spacing */
+               padding: 1.2rem 2.5rem;
+               /* Original padding */
+               font-size: 1.5rem;
+               /* Original font size */
+               font-weight: bold;
+               color: white;
+               background-color: #4CAF50;
+               /* Green button */
+               border: none;
+               border-radius: 50px;
+               /* Original border-radius */
+               cursor: pointer;
+               transition: all 0.2s ease-in-out;
+               box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+               /* Original shadow */
+               outline: none;
+               text-transform: uppercase;
+               letter-spacing: 1px;
+               position: relative;
+               overflow: hidden;
+          }
+
+          .main-menu-button:hover {
+               background-color: #66BB6A;
+               /* Lighter green on hover */
+               transform: translateY(-5px) scale(1.02);
+               /* Original transform */
+               box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+               /* Original shadow */
+          }
+
+          .main-menu-button:active {
+               transform: translateY(0);
+               box-shadow: 0 3px #388E3C;
+          }
+
+          .main-menu-button::before {
+               /* Ripple effect */
+               content: '';
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               width: 300%;
+               height: 300%;
+               background: rgba(255, 255, 255, 0.15);
+               /* Light ripple effect */
+               border-radius: 50%;
+               transform: translate(-50%, -50%) scale(0);
+               opacity: 0;
+               transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+          }
+
+          .main-menu-button:hover::before {
+               transform: translate(-50%, -50%) scale(1);
+               opacity: 1;
+          }
+
+          /* Specific styles for the "PLAY" button */
+          #playButton {
+            color: white;
+            font-size: 2.5rem; /* Large, bold text */
+            height: 80px;
+            font-weight: bolder;
+            text-align: center;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); /* Subtle shadow on text */
+            
+            /* Sizing and Spacing */
+            padding: 10px 3rem;
+            border-radius: 30px; /* Rounded corners */
+            
+            /* Border */
+            border: 5px solid #ffffff; /* A light, thick border */
+            
+            /* Background Gradient */
+            background: linear-gradient(to bottom, #63c63c, #3a9d23); /* Green gradient */
+            
+            /* 3D Effect using Box Shadow */
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.4), /* Inner top highlight */
+                0 5px 10px rgba(0, 0, 0, 0.5); /* Outer shadow for depth */
+
+            /* Interactivity */
+            cursor: pointer;
+            transition: all 0.1s ease-in-out; /* Smooth transition for effects */
+          }
+
+          #playButton:hover {
+            background: linear-gradient(to bottom, #74d848, #4bb531);
+               /* Darker red-orange on hover */
+          }
+
+
+          /* Specific styles for icon buttons */
+          .icon-button {
+               background: linear-gradient(45deg, #333, #555);
+               /* Dark grey/black gradient */
+               color: white;
+               border: none;
+               width: 60px;
+               /* Fixed size for icon buttons */
+               height: 60px;
+               display: flex;
+               justify-content: center;
+               align-items: center;
+               font-size: 2rem;
+               /* Size for the icon */
+               border-radius: 50%;
+               /* Make them round */
+               cursor: pointer;
+               transition: all 0.2s ease-in-out;
+               box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+               outline: none;
+               position: relative;
+               overflow: hidden;
+          }
+
+          .icon-button:hover {
+               background: linear-gradient(45deg, #555, #777);
+               /* Lighter grey on hover */
+               transform: translateY(-5px) scale(1.05);
+               /* Slightly larger hover effect */
+               box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+          }
+
+          .icon-button::before {
+               /* Ripple effect for icon buttons */
+               content: '';
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               width: 300%;
+               height: 300%;
+               background: rgba(255, 255, 255, 0.15);
+               border-radius: 50%;
+               transform: translate(-50%, -50%) scale(0);
+               opacity: 0;
+               transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+          }
+
+          .icon-button:hover::before {
+               transform: translate(-50%, -50%) scale(1);
+               opacity: 1;
+          }
+
+
+          /* Image for the main menu */
+          #main-menu-center-image {
+               position: absolute;
+               top: 50%;
+               left: 50%;
+               transform: translate(-50%, -50%);
+               width: 60%;
+               /* Adjust size as needed */
+               max-width: 500px;
+               /* Max width for larger screens */
+               height: auto;
+               z-index: 15;
+               /* Below title, above background */
+               filter: drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.5));
+               /* Add shadow */
+          }
+
+          .icon-container {
+               /* Floating fruit emojis */
+               position: absolute;
+               font-size: 4rem;
+               /* Larger icons */
+               opacity: 0.6;
+               pointer-events: none;
+               /* Allow clicks through icons */
+               animation: float 8s ease-in-out infinite;
+               /* Floating animation */
+               z-index: 10;
+               /* Below main menu elements */
+          }
+
+          /* Specific positions for floating emojis relative to game-container */
+          .icon-1 {
+               top: 5%;
+               left: 10%;
+               animation-delay: 0s;
+               color: #FFEB3B;
+          }
+
+          .icon-2 {
+               top: 15%;
+               right: 10%;
+               animation-delay: 1.5s;
+               color: #D32F2F;
+          }
+
+          .icon-3 {
+               bottom: 5%;
+               left: 20%;
+               animation-delay: 3s;
+               color: #8BC34A;
+          }
+
+          .icon-4 {
+               top: 10%;
+               right: 25%;
+               animation-delay: 4.5s;
+               color: #FF9800;
+          }
+
+          .icon-5 {
+               bottom: 10%;
+               right: 15%;
+               animation-delay: 6s;
+               color: #9C27B0;
+          }
+
+          @keyframes float {
+               0% {
+                    transform: translate(0, 0);
+               }
+
+               50% {
+                    transform: translate(10px, -10px);
+               }
+
+               100% {
+                    transform: translate(0, 0);
+               }
+          }
+
+          /* Responsive adjustments for smaller screens - from fruit-slicing-menu */
+          @media (max-width: 640px) {
+               .game-title-fruit {
+                    font-size: 2.5rem;
+               }
+
+               .game-title-ninja {
+                    font-size: 2rem;
+               }
+
+               .game-title-classic {
+                    font-size: 1.2rem;
+               }
+
+               .main-menu-buttons-wrapper {
+                    flex-direction: row;
+                    /* Keep horizontal for mobile */
+                    gap: 0.5rem;
+                    /* Smaller gap */
+               }
+
+               .main-menu-button {
+                    padding: 1rem 1.5rem;
+                    font-size: 1.2rem;
+               }
+
+               .icon-button {
+                    width: 50px;
+                    height: 50px;
+                    font-size: 1.5rem;
+               }
+
+               #playButton {
+                    padding: 1rem 2rem;
+                    font-size: 1.5rem;
+               }
+
+               #main-menu-center-image {
+                    width: 80%;
+               }
+
+               .icon-container {
+                    font-size: 3rem;
+               }
+
+               .game-title-container {
+                    top: 5%;
+                    /* Adjust title position for small screens */
+               }
+
+               .main-menu-buttons-wrapper {
+                    bottom: 2%;
+                    /* Adjust button position for small screens */
+               }
+
+               /* Adjust score display for smaller screens */
+               #score-display-container {
+                    top: 10px;
+                    left: 10px;
+               }
+
+               #score-watermelon-emoji {
+                    font-size: 2rem;
+                    /* Smaller emoji for mobile */
+                    margin-right: 3px;
+               }
+
+               #score-display,
+               #high-score-display {
+                    font-size: 1.8rem;
+               }
+
+               #high-score-display {
+                    font-size: 1.2rem;
+               }
+          }
+     </style>
+     <!-- Font Awesome for icons -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+     <div id="game-container">
+          <!-- Score Display Container -->
+          <div id="score-display-container">
+               <span id="score-watermelon-emoji" class="text-5xl">🍉</span>
+               <div>
+                    <div id="score-display">0</div>
+               </div>
+               <div id="high-score-display">Best: 0</div>
+          </div>
+
+          <div id="timer-display">Time: 0s</div>
+          <button id="pause-btn"><span class="fas fa-pause"></span></button>
+
+          <!-- The control-panel now only houses game-over and pause-screen, hidden by default -->
+          <div id="control-panel">
+               <!-- Game Over Screen -->
+               <div id="game-over">
+                    <h1>Game Over!</h1>
+                    <div id="final-score">Score: 0</div>
+                    <button id="restart-btn">Play Again</button>
+                    <button id="main-menu-btn">Main Menu</button>
+                    <button id="gameover-sound-btn" class="temp-btn"><span class="fas fa-volume-up"></span>
+                         Sound</button>
+               </div>
+
+               <!-- Pause Screen (New) -->
+               <div id="pause-screen">
+                    <h1>Paused</h1>
+                    <p id="pause-time-elapsed">Time Elapsed: 0s</p>
+                    <button id="resume-btn" class="temp-btn">Resume</button>
+                    <button id="reset-game-btn" class="temp-btn"><span class="fas fa-redo"></span> Reset Game</button>
+                    <button id="pause-main-menu-btn" class="temp-btn">Main Menu</button>
+                    <button id="pause-sound-btn" class="temp-btn"><span class="fas fa-volume-up"></span> Sound</button>
+               </div>
+          </div>
+
+          <!-- Floating fruit emojis (existing), now positioned relative to game-container -->
+          <div class="icon-container icon-1">🍉</div>
+          <div class="icon-container icon-2">🍓</div>
+          <div class="icon-container icon-3">🥝</div>
+          <div class="icon-container icon-4">🍊</div>
+          <div class="icon-container icon-5">🍇</div>
+
+          <!-- Title Structure, positioned above the central elements -->
+          <div id="main-menu-title-container" class="game-title-container">
+               <span class="game-title-fruit">FRUIT</span>
+               <span class="game-title-slice">SLICE</span>
+               <span class="game-title-classic">CLASSIC</span>
+          </div>
+
+          <!-- Image for the main menu, replacing SVGs -->
+          <img id="main-menu-center-image" src="logoimage1.png"
+               alt="Sliced Watermelon and Sword">
+
+          <!-- Buttons Wrapper, positioned below the central elements -->
+          <div id="main-menu-buttons-wrapper" class="main-menu-buttons-wrapper">
+               <button id="optionsButton" class="icon-button"><i class="fa fa-gear"></i></button>
+               <button id="playButton" class="main-menu-button">PLAY</button>
+               <button id="quitButton" class="icon-button"><i class="fa fa-home"></i></button>
+          </div>
+
+          <canvas id="game-canvas"></canvas>
+     </div>
+
+     <!-- Sound Control Modal -->
+     <div id="sound-modal">
+          <div class="sound-modal-content">
+               <h2>Sound Settings</h2>
+               <div class="sound-slider-group">
+                    <label for="music-volume">Music Volume:</label>
+                    <input type="range" id="music-volume" min="0" max="1" step="0.01" value="0.5">
+               </div>
+               <div class="sound-slider-group">
+                    <label for="sfx-volume">Sound Effects Volume:</label>
+                    <input type="range" id="sfx-volume" min="0" max="1" step="0.01" value="0.7">
+               </div>
+               <div class="sound-slider-group">
+                    <label for="ui-volume">Button Sounds Volume:</label>
+                    <input type="range" id="ui-volume" min="0" max="1" step="0.01" value="0.8">
+               </div>
+               <button class="sound-close-btn">Close</button>
+          </div>
+     </div>
+
+     <!-- Temporary message box -->
+     <div id="messageBox"></div>
+
+     <!-- Removed src attributes to prevent "NotSupportedError" from external audio sources -->
+     <audio id="background-music" loop preload="auto"></audio>
+     <audio id="slice-sound" preload="auto"></audio>
+     <audio id="bomb-sound" preload="auto"></audio>
+     <audio id="gameover-sound" preload="auto"></audio>
+     <audio id="splash-sound" preload="auto"></audio>
+     <audio id="button-click-sound" preload="auto"></audio>
+
+
+     <script>
+          // Game variables
+          const canvas = document.getElementById('game-canvas');
+          const ctx = canvas.getContext('2d');
+          const gameContainer = document.getElementById('game-container');
+          const scoreDisplayContainer = document.getElementById('score-display-container'); // New container
+          const scoreWatermelonEmoji = document.getElementById('score-watermelon-emoji'); // Reference to the emoji span
+
+          const scoreDisplay = document.getElementById('score-display');
+          const highScoreDisplay = document.getElementById('high-score-display');
+          const timerDisplay = document.getElementById('timer-display');
+          const finalScoreDisplay = document.getElementById('final-score');
+
+          // Control Panel Screens
+          const controlPanel = document.getElementById('control-panel');
+          const gameOverScreen = document.getElementById('game-over');
+          const pauseScreen = document.getElementById('pause-screen');
+
+          // Main Menu Elements (now individual elements)
+          const mainMenuTitleContainer = document.getElementById('main-menu-title-container');
+          const mainMenuButtonsWrapper = document.getElementById('main-menu-buttons-wrapper');
+          const mainMenuFloatingIcons = document.querySelectorAll('.icon-container');
+          const mainMenuCenterImage = document.getElementById('main-menu-center-image'); // New image element
+
+
+          // Main Menu Buttons (newly added)
+          const playButton = document.getElementById('playButton');
+          const optionsButton = document.getElementById('optionsButton');
+          const quitButton = document.getElementById('quitButton');
+
+          // Existing Game Buttons
+          const restartBtn = document.getElementById('restart-btn');
+          const mainMenuBtn = document.getElementById('main-menu-btn');
+          const pauseBtn = document.getElementById('pause-btn');
+          const gameoverSoundBtn = document.getElementById('gameover-sound-btn'); // Sound button on GAME OVER screen
+          const pauseSoundBtn = document.getElementById('pause-sound-btn'); // Sound button on PAUSE screen
+          const resetGameBtn = document.getElementById('reset-game-btn'); // Reset button on PAUSE screen
+          const resumeBtn = document.getElementById('resume-btn'); // Resume button on PAUSE screen
+          const pauseMainMenuBtn = document.getElementById('pause-main-menu-btn'); // Main Menu button on PAUSE screen
+
+          const soundModal = document.getElementById('sound-modal');
+          const soundModalCloseBtn = soundModal.querySelector('.sound-close-btn');
+          const pauseTimeElapsedDisplay = document.getElementById('pause-time-elapsed'); // Display for time on pause screen
+
+          // Audio elements
+          const backgroundMusic = document.getElementById('background-music');
+          const sliceSound = document.getElementById('slice-sound');
+          const bombSound = document.getElementById('bomb-sound');
+          const gameoverSound = document.getElementById('gameover-sound');
+          const splashSound = document.getElementById('splash-sound');
+          const buttonClickSound = document.getElementById('button-click-sound');
+
+          // Volume sliders
+          const musicVolumeSlider = document.getElementById('music-volume');
+          const sfxVolumeSlider = document.getElementById('sfx-volume');
+          const uiVolumeSlider = document.getElementById('ui-volume');
+
+          // Game state
+          let score = 0; // Initialize as integer
+          let highScore = parseInt(localStorage.getItem('fruitNinjaHighScore')) || 0; // Parse as integer
+          let gameRunning = false;
+          let animationId;
+          let fruits = [];
+          let particles = [];
+          let slicePath = [];
+          let isSlicing = false;
+          let lastSpawnTime = 0;
+          let spawnInterval = 1200;
+          let gameTimeElapsed = 0;
+          let gameTimerIntervalId;
+          let gamePaused = false;
+
+          // New features state
+          let currentCombo = 0;
+          let comboMessages = [];
+          let frenzyModeActive = false;
+          let frenzyTimer;
+          let normalSpawnInterval;
+          let juiceSplashes = []; // Array to hold juice splatter effects
+          let bombFuses = []; // Array to hold bomb fuse particles
+          let isBombExploding = false; // Flag to pause game during bomb explosion
+
+          // Dynamic Difficulty Variables
+          let gameDifficulty = 1.0; // Starts at 1.0 (normal)
+          const difficultyIncreaseRate = 0.00005; // Rate of difficulty increase per frame
+          const maxDifficulty = 2.5; // Maximum difficulty multiplier
+
+          // Game balance parameters
+          const maxFruitsOnScreen = 8; // Max number of fruits/bombs allowed on screen at once
+          let bombSpawnChance = 0.1; // 10% chance for a bomb to spawn (0.0 - 1.0)
+
+
+          // Sound volume state (default values or loaded from localStorage)
+          let musicVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.5;
+          let sfxVolume = parseFloat(localStorage.getItem('sfxVolume')) || 0.7;
+          let uiVolume = parseFloat(localStorage.getItem('uiVolume')) || 0.8;
+
+
+          // Fruit types - now with specific drawing types, mass, and max slice levels
+          const fruitTypes = [
+               { type: 'apple', radius: 42, basePoints: 10, isBomb: false, isFrenzy: false, maxSliceLevels: 2, color: '#FF5252', mass: 1.2 }, // Medium
+               { type: 'green_apple', radius: 47, basePoints: 15, isBomb: false, isFrenzy: false, maxSliceLevels: 2, color: '#4CAF50', mass: 1.3 }, // Medium
+               { type: 'lemon', radius: 37, basePoints: 5, isBomb: false, isFrenzy: false, maxSliceLevels: 1, color: '#FFEB3B', mass: 0.8 }, // Small, lighter
+               { type: 'orange', radius: 52, basePoints: 20, isBomb: false, isFrenzy: false, maxSliceLevels: 3, color: '#FF9800', mass: 1.5 }, // Large, heavier
+               { type: 'watermelon', radius: 57, basePoints: 25, isBomb: false, isFrenzy: false, maxSliceLevels: 3, color: '#66BB6A', mass: 2.0 }, // Largest, heaviest
+               { type: 'banana', radius: 50, basePoints: 12, isBomb: false, isFrenzy: false, maxSliceLevels: 2, color: '#FFE082', mass: 1.0 }, // Medium
+               { type: 'strawberry', radius: 32, basePoints: 8, isBomb: false, isFrenzy: false, maxSliceLevels: 1, color: '#E91E63', mass: 0.7 }, // Smallest, lightest
+               { type: 'kiwi', radius: 44, basePoints: 12, isBomb: false, isFrenzy: false, maxSliceLevels: 2, color: '#8BC34A', mass: 1.1 }, // Medium
+               { type: 'mango', radius: 54, basePoints: 22, isBomb: false, isFrenzy: false, maxSliceLevels: 3, color: '#FFC107', mass: 1.8 }, // Large, heavy
+               { type: 'guava', radius: 42, basePoints: 10, isBomb: false, isFrenzy: false, maxSliceLevels: 2, color: '#C0CA33', mass: 1.0 }, // Medium
+               { type: 'bomb', radius: 55, basePoints: 0, isBomb: true, isFrenzy: false, maxSliceLevels: 0, color: '#000000', mass: 1.8 }, // Increased bomb radius to 55
+               { type: 'frenzy_banana', radius: 47, basePoints: 50, isBomb: false, isFrenzy: true, maxSliceLevels: 2, color: 'gold', mass: 0.9 } // Lighter frenzy banana
+          ];
+
+          // --- Sound Functions ---
+          function applyVolumes() {
+               backgroundMusic.volume = musicVolume;
+               sliceSound.volume = sfxVolume;
+               bombSound.volume = sfxVolume;
+               gameoverSound.volume = sfxVolume;
+               splashSound.volume = sfxVolume;
+               buttonClickSound.volume = uiVolume;
+
+               // Update slider positions
+               musicVolumeSlider.value = musicVolume;
+               sfxVolumeSlider.value = sfxVolume;
+               uiVolumeSlider.value = uiVolume;
+          }
+
+          function saveVolumes() {
+               localStorage.setItem('musicVolume', musicVolume);
+               localStorage.setItem('sfxVolume', sfxVolume);
+               localStorage.setItem('uiVolume', uiVolume);
+          }
+
+          function playButtonClickSound() {
+               // Check if source is set before playing
+               if (buttonClickSound.src) {
+                    buttonClickSound.currentTime = 0;
+                    buttonClickSound.play().catch(e => console.error("Error playing button click sound:", e));
+               } else {
+                    console.warn("Button click sound source not set. Cannot play.");
+               }
+          }
+
+          function openSoundModal() {
+               playButtonClickSound();
+               soundModal.style.display = 'flex'; // Use flex to center the modal content
+               // Stop game if it's running when opening sound modal from gameplay
+               if (gameRunning && !gamePaused) {
+                    togglePause(); // This will pause the game and show the pause menu too
+               }
+          }
+
+          function closeSoundModal() {
+               playButtonClickSound();
+               soundModal.style.display = 'none';
+          }
+
+          /**
+           * Displays a temporary message box on the screen.
+           * @param {string} message - The message to display.
+           */
+          function showMessage(message) {
+               let messageBox = document.getElementById('messageBox');
+               if (!messageBox) {
+                    messageBox = document.createElement('div');
+                    messageBox.id = 'messageBox';
+                    messageBox.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg transition-opacity duration-300 ease-in-out opacity-0 z-50';
+                    document.body.appendChild(messageBox);
+               }
+               messageBox.textContent = message;
+               messageBox.style.opacity = '1';
+
+               // Hide the message after 3 seconds
+               setTimeout(() => {
+                    messageBox.style.opacity = '0';
+               }, 3000);
+          }
+
+          // --- Core Game Functions ---
+
+          // Resize canvas to full window
+          function resizeCanvas() {
+               canvas.width = window.innerWidth;
+               canvas.height = window.innerHeight;
+          }
+
+          // Function to hide all main menu elements (including floating icons)
+          function hideMainMenuElements() {
+               mainMenuTitleContainer.style.display = 'none';
+               mainMenuButtonsWrapper.style.display = 'none';
+               mainMenuFloatingIcons.forEach(icon => icon.style.display = 'none'); /* HIDE FLOATING ICONS */
+               mainMenuCenterImage.style.display = 'none'; // Hide the new image
+          }
+
+          // Function to show all main menu elements (including floating icons)
+          function showMainMenuElements() {
+               console.log("Showing main menu elements.");
+               mainMenuTitleContainer.style.display = 'flex';
+               mainMenuButtonsWrapper.style.display = 'flex';
+               mainMenuFloatingIcons.forEach(icon => icon.style.display = 'block'); /* SHOW FLOATING ICONS */
+               mainMenuCenterImage.style.display = 'block'; // Show the new image
+          }
+
+          // Function to hide all control panel screens (game over, pause)
+          function hideGameControlScreens() {
+               controlPanel.style.display = 'none';
+               gameOverScreen.style.display = 'none';
+               pauseScreen.style.display = 'none';
+          }
+
+          // Initialize game
+          function initGame() {
+               console.log("initGame called.");
+               playButtonClickSound();
+               resizeCanvas();
+               fruits = [];
+               particles = [];
+               slicePath = [];
+               comboMessages = [];
+               juiceSplashes = []; // Reset juice splashes
+               bombFuses = []; // Reset bomb fuses
+               score = 0; // Reset score as integer
+               scoreDisplay.textContent = score; // Display as integer
+               highScoreDisplay.textContent = `Best: ${highScore}`; // Display as integer
+               gameTimeElapsed = 0;
+               timerDisplay.textContent = `Time: ${gameTimeElapsed}s`;
+               lastSpawnTime = 0;
+               spawnInterval = 1200;
+               currentCombo = 0;
+               gamePaused = false;
+               isBombExploding = false; // Reset bomb explosion flag
+               gameDifficulty = 1.0; // Reset difficulty
+               pauseBtn.innerHTML = '<span class="fas fa-play"></span>'; // Set to play icon initially
+               pauseBtn.innerHTML = '<span class="fas fa-pause"></span>'; // Set to pause icon initially
+
+               clearTimeout(frenzyTimer);
+               frenzyModeActive = false;
+               gameContainer.classList.remove('frenzy-active');
+               gameContainer.classList.remove('screen-shake'); // Ensure no lingering shake
+
+               hideMainMenuElements(); // Hide all main menu elements (including floating icons)
+               hideGameControlScreens(); // Hide game over and pause screens
+
+               scoreDisplayContainer.style.display = 'flex'; // Show the score container
+               scoreDisplay.style.display = 'block'; // Show current score in game
+               scoreWatermelonEmoji.style.display = 'inline-block'; // Show emoji during game
+               timerDisplay.style.display = 'block';
+               pauseBtn.style.display = 'flex';
+               gameRunning = true;
+
+               document.body.classList.add('game-active');
+
+               // Check if source is set before playing
+               if (backgroundMusic.src) {
+                    backgroundMusic.play().catch(e => console.error("Error playing background music:", e));
+               } else {
+                    console.warn("Background music source not set. Cannot play.");
+               }
+
+               gameLoop();
+
+               clearInterval(gameTimerIntervalId);
+               gameTimerIntervalId = setInterval(() => {
+                    if (!gamePaused && !isBombExploding) { // Pause timer during bomb explosion
+                         gameTimeElapsed++;
+                         timerDisplay.textContent = `Time: ${gameTimeElapsed}s`;
+                    }
+               }, 1000);
+          }
+
+          // Toggle Pause function
+          function togglePause() {
+               playButtonClickSound();
+               gamePaused = !gamePaused;
+               if (gamePaused) {
+                    cancelAnimationFrame(animationId);
+                    clearInterval(gameTimerIntervalId);
+                    backgroundMusic.pause();
+                    pauseBtn.innerHTML = '<span class="fas fa-play"></span>';
+
+                    hideMainMenuElements(); // Ensure main menu is hidden (including floating icons)
+                    hideGameControlScreens(); // Hide other game control screens
+
+                    // Show control panel and pause screen
+                    controlPanel.style.display = 'block'; // Ensure control panel is visible
+                    pauseScreen.style.display = 'block';
+                    controlPanel.style.opacity = '1';
+                    controlPanel.style.pointerEvents = 'auto';
+
+                    pauseTimeElapsedDisplay.textContent = `Time Elapsed: ${gameTimeElapsed}s`; // Update time on pause screen
+
+                    document.body.classList.remove('game-active');
+               } else {
+                    gameLoop();
+                    // Check if source is set before playing
+                    if (backgroundMusic.src) {
+                         backgroundMusic.play().catch(e => console.error("Error playing background music:", e));
+                    } else {
+                         console.warn("Background music source not set. Cannot play.");
+                    }
+                    gameTimerIntervalId = setInterval(() => {
+                         if (!gamePaused && !isBombExploding) {
+                              gameTimeElapsed++;
+                              timerDisplay.textContent = `Time: ${gameTimeElapsed}s`;
+                         }
+                    }, 1000);
+                    pauseBtn.innerHTML = '<span class="fas fa-pause"></span>';
+                    hideGameControlScreens(); // Hide pause screen and control panel
+                    document.body.classList.add('game-active');
+               }
+          }
+
+          // Game loop
+          function gameLoop() {
+               console.log("Game loop running.");
+               if (!gameRunning || gamePaused || isBombExploding) return; // Pause game loop during bomb explosion
+
+               // Update difficulty
+               gameDifficulty = Math.min(maxDifficulty, gameDifficulty + difficultyIncreaseRate);
+
+               ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+               updateFruits();
+               updateParticles();
+               updateJuiceSplashes(); // Update and draw juice splashes
+               updateBombFuses(); // Update and draw bomb fuse particles
+               drawSlicePath();
+               drawComboMessages();
+
+               const now = Date.now();
+               if (frenzyModeActive) {
+                    if (now - lastSpawnTime > 100 && fruits.length < maxFruitsOnScreen) {
+                         spawnNonBombFruit();
+                         lastSpawnTime = now;
+                    }
+               } else {
+                    const currentSpawnInterval = Math.max(400, 1200 / (1 + gameDifficulty * 0.5)); // Faster spawning with difficulty
+                    if (now - lastSpawnTime > currentSpawnInterval && fruits.length < maxFruitsOnScreen) {
+                         spawnFruit();
+                         lastSpawnTime = now;
+                    }
+               }
+
+               animationId = requestAnimationFrame(gameLoop);
+          }
+
+          // Spawn a fruit - with a chance for a frenzy fruit
+          function spawnFruit() {
+               // Determine spawn point (left, center, or right)
+               let startX;
+               const spawnSide = Math.random(); // 0-0.33 left, 0.33-0.66 center, 0.66-1 right
+
+               if (spawnSide < 0.33) { // Left side
+                    startX = Math.random() * (canvas.width * 0.2); // Spawn within left 20%
+               } else if (spawnSide < 0.66) { // Center
+                    startX = canvas.width * 0.4 + Math.random() * (canvas.width * 0.2); // Spawn within center 20%
+               } else { // Right side
+                    startX = canvas.width * 0.8 + Math.random() * (canvas.width * 0.2); // Spawn within right 20%
+               }
+
+               let typeDef;
+               const currentBombSpawnChance = Math.min(0.5, 0.1 + gameDifficulty * 0.1); // Bomb chance increases with difficulty, max 50%
+               const currentWatermelonSpawnChance = Math.min(0.4, 0.1 + gameDifficulty * 0.08); // Watermelon chance increases
+
+               const randomTypeRoll = Math.random();
+
+               if (randomTypeRoll < currentBombSpawnChance) {
+                    typeDef = fruitTypes.find(f => f.type === 'bomb');
+               } else if (randomTypeRoll < currentBombSpawnChance + currentWatermelonSpawnChance) {
+                    typeDef = fruitTypes.find(f => f.type === 'watermelon');
+               } else if (Math.random() < 0.05 && !frenzyModeActive) { // Frenzy chance
+                    typeDef = fruitTypes.find(f => f.isFrenzy);
+               } else {
+                    const nonSpecialTypes = fruitTypes.filter(f => !f.isFrenzy && !f.isBomb && f.type !== 'watermelon');
+                    typeDef = nonSpecialTypes[Math.floor(Math.random() * nonSpecialTypes.length)];
+               }
+
+               // Adjust initial speed based on mass and spawn point and difficulty
+               let baseInitialSpeedY = 15;
+               let speedY = -(baseInitialSpeedY + Math.random() * 4 - (typeDef.mass * 0.8)) * (1 + gameDifficulty * 0.1); // Speed increases with difficulty
+
+               let speedX;
+               if (startX < canvas.width * 0.4) { // Spawned on left, throw right
+                    speedX = (3 + Math.random() * 3) * (1 + gameDifficulty * 0.05); // Speed increases with difficulty
+               } else if (startX > canvas.width * 0.6) { // Spawned on right, throw left
+                    speedX = -(3 + Math.random() * 3) * (1 + gameDifficulty * 0.05); // Speed increases with difficulty
+               } else { // Spawned in center, throw slightly left or right
+                    speedX = (-2 + Math.random() * 4) * (1 + gameDifficulty * 0.05); // Speed increases with difficulty
+               }
+
+               // Specific adjustment for watermelon trajectory
+               if (typeDef.type === 'watermelon') {
+                    startX = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.1; // More centered
+                    speedY = -(baseInitialSpeedY + 8 + Math.random() * 5) * (1 + gameDifficulty * 0.15); // Higher upward velocity
+                    speedX = (-1 + Math.random() * 2) * (1 + gameDifficulty * 0.05); // Keep it relatively vertical
+               }
+
+
+               fruits.push({
+                    x: startX, y: canvas.height + typeDef.radius, radius: typeDef.radius, color: typeDef.color,
+                    basePoints: typeDef.basePoints,
+                    currentPoints: typeDef.basePoints,
+                    isBomb: typeDef.isBomb, isFrenzy: typeDef.isFrenzy, speedX: speedX, speedY: speedY,
+                    rotation: Math.random() * Math.PI * 2, rotationSpeed: (Math.random() - 0.5) * 0.2,
+                    currentSliceLevel: 0,
+                    maxSliceLevels: typeDef.maxSliceLevels,
+                    originalColor: typeDef.color,
+                    originalRadius: typeDef.radius,
+                    type: typeDef.type, // Store the specific fruit type (e.g., 'apple', 'watermelon')
+                    mass: typeDef.mass // Add mass property
+               });
+
+               // If it's a bomb, add a fuse particle effect
+               if (typeDef.isBomb) {
+                    bombFuses.push({
+                         x: startX,
+                         y: canvas.height + typeDef.radius - typeDef.radius - (typeDef.radius / 2) - 10, // Approximate fuse tip
+                         life: 60, // How long the spark lasts
+                         maxLife: 60,
+                         size: 2,
+                         color: 'rgba(255, 165, 0, 1)', // Orange spark
+                         speedY: speedY, // Inherit bomb's initial vertical speed
+                         speedX: speedX, // Inherit bomb's initial horizontal speed
+                         parentBomb: fruits[fruits.length - 1] // Reference to the bomb it belongs to
+                    });
+               }
+          }
+
+          // Special spawner for frenzy mode to avoid bombs
+          function spawnNonBombFruit() {
+               // Determine spawn point (left, center, or right)
+               let startX;
+               const spawnSide = Math.random(); // 0-0.33 left, 0.33-0.66 center, 0.66-1 right
+
+               if (spawnSide < 0.33) { // Left side
+                    startX = Math.random() * (canvas.width * 0.2); // Spawn within left 20%
+               } else if (spawnSide < 0.66) { // Center
+                    startX = canvas.width * 0.4 + Math.random() * (canvas.width * 0.2); // Spawn within center 20%
+               } else { // Right side
+                    startX = canvas.width * 0.8 + Math.random() * (canvas.width * 0.2); // Spawn within right 20%
+               }
+
+               const fruitOnlyTypes = fruitTypes.filter(f => !f.isBomb && !f.isFrenzy);
+               const typeDef = fruitOnlyTypes[Math.floor(Math.random() * fruitOnlyTypes.length)];
+
+               const baseInitialSpeedY = 15;
+               let speedY = -(baseInitialSpeedY + Math.random() * 4 - (typeDef.mass * 0.8)) * (1 + gameDifficulty * 0.1);
+
+               let speedX;
+               if (startX < canvas.width * 0.4) { // Spawned on left, throw right
+                    speedX = (3 + Math.random() * 3) * (1 + gameDifficulty * 0.05);
+               } else if (startX > canvas.width * 0.6) { // Spawned on right, throw left
+                    speedX = -(3 + Math.random() * 3) * (1 + gameDifficulty * 0.05);
+               } else { // Spawned in center, throw slightly left or right
+                    speedX = (-2 + Math.random() * 4) * (1 + gameDifficulty * 0.05);
+               }
+
+               fruits.push({
+                    x: startX, y: canvas.height + typeDef.radius, radius: typeDef.radius, color: typeDef.color,
+                    basePoints: typeDef.basePoints,
+                    currentPoints: typeDef.basePoints,
+                    isBomb: false, isFrenzy: false, speedX: speedX, speedY: speedY,
+                    rotation: Math.random() * Math.PI * 2, rotationSpeed: (Math.random() - 0.5) * 0.2,
+                    currentSliceLevel: 0,
+                    maxSliceLevels: typeDef.maxSliceLevels,
+                    originalColor: typeDef.color,
+                    originalRadius: typeDef.radius,
+                    type: typeDef.type,
+                    mass: typeDef.mass
+               });
+          }
+
+          // Update all fruits
+          function updateFruits() {
+               for (let i = fruits.length - 1; i >= 0; i--) {
+                    const fruit = fruits[i];
+
+                    // Apply physics
+                    fruit.speedY += 0.3 * fruit.mass; // Gravity adjusted by mass
+
+                    // Apply air resistance (more effect on lighter objects)
+                    const airResistanceFactor = 0.005 * fruit.mass; // Adjust based on mass
+                    fruit.speedX *= (1 - airResistanceFactor);
+                    fruit.speedY *= (1 - airResistanceFactor * 0.5); // Less resistance vertically
+
+                    fruit.x += fruit.speedX;
+                    fruit.y += fruit.speedY;
+                    fruit.rotation += fruit.rotationSpeed;
+
+                    // Wall bouncing (optional, but good for realism)
+                    if (fruit.x < fruit.radius || fruit.x > canvas.width - fruit.radius) {
+                         fruit.speedX *= -0.7; // Bounce with some energy loss
+                         fruit.x = Math.max(fruit.radius, Math.min(canvas.width - fruit.radius, fruit.x));
+                    }
+
+                    // Draw fruit/piece using specific drawing functions
+                    drawFruit(fruit);
+
+                    // Remove if off-screen
+                    if (fruit.y > canvas.height + fruit.radius * 5) { // If it falls far enough off screen
+                         fruits.splice(i, 1);
+                    }
+               }
+          }
+
+          // --- Specific Fruit Drawing Functions ---
+          function drawApple(fruit) {
+               ctx.beginPath();
+               // Slightly irregular apple shape
+               ctx.moveTo(0, -fruit.radius);
+               ctx.bezierCurveTo(fruit.radius * 0.8, -fruit.radius * 1.2, fruit.radius * 1.2, -fruit.radius * 0.5, fruit.radius, 0);
+               ctx.bezierCurveTo(fruit.radius * 1.2, fruit.radius * 0.5, fruit.radius * 0.8, fruit.radius * 1.2, 0, fruit.radius);
+               ctx.bezierCurveTo(-fruit.radius * 0.8, fruit.radius * 1.2, -fruit.radius * 1.2, fruit.radius * 0.5, -fruit.radius, 0);
+               ctx.bezierCurveTo(-fruit.radius * 1.2, -fruit.radius * 0.5, -fruit.radius * 0.8, -fruit.radius * 1.2, 0, -fruit.radius);
+               ctx.closePath();
+
+               const gradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius);
+               gradient.addColorStop(0, `rgb(${hexToRgb(fruit.originalColor)})`); // Original color (e.g., red or green)
+               gradient.addColorStop(0.8, `rgb(${darkenColor(fruit.originalColor, 30)})`);
+               gradient.addColorStop(1, `rgb(${darkenColor(fruit.originalColor, 50)})`);
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Sliced inner flesh and seeds
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, fruit.radius * 0.7, 0, Math.PI * 2); // Smaller inner circle
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.7);
+                    innerGradient.addColorStop(0, 'rgba(255, 250, 240, 0.9)'); // Creamy white
+                    innerGradient.addColorStop(0.8, 'rgba(255, 230, 200, 0.8)'); // Light yellow
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+
+                    // Draw a few seeds
+                    ctx.fillStyle = '#4A2C2A'; // Dark brown
+                    ctx.beginPath();
+                    ctx.ellipse(fruit.radius * 0.3, fruit.radius * 0.2, fruit.radius * 0.05, fruit.radius * 0.1, Math.PI / 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(-fruit.radius * 0.3, -fruit.radius * 0.2, fruit.radius * 0.05, fruit.radius * 0.1, -Math.PI / 4, 0, Math.PI * 2);
+                    ctx.fill();
+               }
+
+               // Stem
+               ctx.fillStyle = '#8B4513'; // Brown
+               ctx.fillRect(-2, -fruit.radius - 5, 4, 10);
+
+               // Subtle highlight
+               ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+               ctx.beginPath();
+               ctx.arc(-fruit.radius * 0.4, -fruit.radius * 0.4, fruit.radius * 0.3, 0, Math.PI * 2);
+               ctx.fill();
+          }
+
+          function drawWatermelon(fruit) {
+               ctx.beginPath();
+               ctx.arc(0, 0, fruit.radius, 0, Math.PI * 2);
+               const outerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius);
+               outerGradient.addColorStop(0, '#66BB6A'); // Light green
+               outerGradient.addColorStop(0.8, '#388E3C'); // Darker green
+               outerGradient.addColorStop(1, '#1B5E20'); // Deep green
+               ctx.fillStyle = outerGradient;
+               ctx.fill();
+
+               // Darker green stripes
+               ctx.strokeStyle = '#1A2E1C'; // Very dark green
+               ctx.lineWidth = fruit.radius * 0.15; // Thicker stripes
+               for (let i = 0; i < 4; i++) { // Fewer, more prominent stripes
+                    ctx.beginPath();
+                    ctx.arc(0, 0, fruit.radius * (0.3 + i * 0.2), Math.PI * 0.1, Math.PI * 0.9);
+                    ctx.stroke();
+               }
+
+               // Inner red flesh (for sliced pieces) - only if sliced
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, fruit.radius * 0.8, 0, Math.PI * 2);
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.8);
+                    innerGradient.addColorStop(0, 'rgba(255, 99, 71, 0.9)'); // Tomato red
+                    innerGradient.addColorStop(0.8, 'rgba(220, 20, 60, 0.8)'); // Crimson
+                    innerGradient.addColorStop(1, 'rgba(178, 34, 34, 0.7)'); // Firebrick
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+
+                    // Black seeds
+                    ctx.fillStyle = '#000000';
+                    for (let i = 0; i < 10; i++) {
+                         const angle = Math.random() * Math.PI * 2;
+                         const dist = Math.random() * fruit.radius * 0.6;
+                         ctx.beginPath();
+                         ctx.ellipse(Math.cos(angle) * dist, Math.sin(angle) * dist, fruit.radius * 0.05, fruit.radius * 0.1, angle, 0, Math.PI * 2);
+                         ctx.fill();
+                    }
+               }
+          }
+
+          function drawBanana(fruit) {
+               ctx.beginPath();
+               // More curved banana shape
+               ctx.moveTo(-fruit.radius * 0.5, -fruit.radius);
+               ctx.quadraticCurveTo(fruit.radius * 0.8, -fruit.radius * 1.2, fruit.radius, 0);
+               ctx.quadraticCurveTo(fruit.radius * 0.8, fruit.radius * 1.2, -fruit.radius * 0.5, fruit.radius);
+               ctx.quadraticCurveTo(-fruit.radius * 0.8, fruit.radius * 0.5, -fruit.radius * 0.5, -fruit.radius);
+               ctx.closePath();
+
+               const gradient = ctx.createLinearGradient(-fruit.radius, 0, fruit.radius, 0);
+               gradient.addColorStop(0, '#FFEB3B'); // Yellow
+               gradient.addColorStop(0.5, '#FDD835'); // Darker yellow
+               gradient.addColorStop(1, '#FBC02D'); // Orange-yellow
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Sliced inner flesh
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, fruit.radius * 0.8, fruit.radius * 0.6, 0, 0, Math.PI * 2);
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.8);
+                    innerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); // White
+                    innerGradient.addColorStop(0.8, 'rgba(255, 255, 200, 0.8)'); // Creamy yellow
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+               }
+
+               // Brown tips
+               ctx.fillStyle = '#795548'; // Brown
+               ctx.beginPath();
+               ctx.arc(fruit.radius * 0.9, 0, fruit.radius * 0.2, 0, Math.PI * 2);
+               ctx.fill();
+               ctx.fillRect(-fruit.radius * 0.5 - 5, -fruit.radius - 5, 10, 15); // Stem
+          }
+
+          function drawOrange(fruit) {
+               ctx.beginPath();
+               ctx.arc(0, 0, fruit.radius, 0, Math.PI * 2);
+               const gradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius);
+               gradient.addColorStop(0, '#FF9800'); // Orange
+               gradient.addColorStop(0.8, '#FB8C00'); // Darker orange
+               gradient.addColorStop(1, '#EF6C00'); // Deep orange
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Sliced inner flesh
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, fruit.radius * 0.8, 0, Math.PI * 2);
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.8);
+                    innerGradient.addColorStop(0, 'rgba(255, 200, 100, 0.9)'); // Light orange
+                    innerGradient.addColorStop(0.8, 'rgba(255, 160, 50, 0.8)'); // Medium orange
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+
+                    // Segments (simple lines)
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 6; i++) {
+                         const angle = (Math.PI * 2 / 6) * i;
+                         ctx.beginPath();
+                         ctx.moveTo(0, 0);
+                         ctx.lineTo(Math.cos(angle) * fruit.radius * 0.8, Math.sin(angle) * fruit.radius * 0.8);
+                         ctx.stroke();
+                    }
+               }
+
+               // Texture dots (peel)
+               ctx.fillStyle = 'rgba(0,0,0,0.15)'; // Darker dots
+               for (let i = 0; i < 30; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * fruit.radius * 0.9;
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, fruit.radius * 0.02, 0, Math.PI * 2);
+                    ctx.fill();
+               }
+          }
+
+          function drawLemon(fruit) {
+               ctx.beginPath();
+               ctx.ellipse(0, 0, fruit.radius, fruit.radius * 0.8, 0, 0, Math.PI * 2);
+               const gradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius);
+               gradient.addColorStop(0, '#FFEB3B'); // Lemon yellow
+               gradient.addColorStop(0.8, '#FDD835'); // Darker yellow
+               gradient.addColorStop(1, '#FBC02D'); // Orange-yellow
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Sliced inner flesh
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, fruit.radius * 0.8, fruit.radius * 0.6, 0, 0, Math.PI * 2);
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.8);
+                    innerGradient.addColorStop(0, 'rgba(255, 255, 200, 0.9)'); // Light yellow
+                    innerGradient.addColorStop(0.8, 'rgba(255, 255, 150, 0.8)'); // Pale yellow
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+
+                    // Segments (simple lines)
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 6; i++) {
+                         const angle = (Math.PI * 2 / 6) * i;
+                         ctx.beginPath();
+                         ctx.moveTo(0, 0);
+                         ctx.lineTo(Math.cos(angle) * fruit.radius * 0.8, Math.sin(angle) * fruit.radius * 0.6);
+                         ctx.stroke();
+                    }
+               }
+
+               // Pointed tips
+               ctx.fillStyle = '#FBC02D';
+               ctx.beginPath();
+               ctx.arc(fruit.radius * 0.9, 0, fruit.radius * 0.15, 0, Math.PI * 2);
+               ctx.fill();
+               ctx.beginPath();
+               ctx.arc(-fruit.radius * 0.9, 0, fruit.radius * 0.15, 0, Math.PI * 2);
+               ctx.fill();
+
+               // Subtle texture
+               ctx.fillStyle = 'rgba(0,0,0,0.05)';
+               for (let i = 0; i < 20; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * fruit.radius * 0.7;
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist * 0.8, fruit.radius * 0.015, 0, Math.PI * 2);
+                    ctx.fill();
+               }
+          }
+
+          function drawStrawberry(fruit) {
+               ctx.beginPath();
+               // Heart-like shape for strawberry
+               ctx.moveTo(0, -fruit.radius * 1.2); // Top tip
+               ctx.bezierCurveTo(fruit.radius * 0.8, -fruit.radius * 1.5, fruit.radius * 1.5, -fruit.radius * 0.5, fruit.radius * 0.8, fruit.radius * 0.5);
+               ctx.bezierCurveTo(fruit.radius * 0.5, fruit.radius * 1.2, -fruit.radius * 0.5, fruit.radius * 1.2, -fruit.radius * 0.8, fruit.radius * 0.5);
+               ctx.bezierCurveTo(-fruit.radius * 1.5, -fruit.radius * 0.5, -fruit.radius * 0.8, -fruit.radius * 1.5, 0, -fruit.radius * 1.2);
+               ctx.closePath();
+
+               const gradient = ctx.createRadialGradient(0, -fruit.radius * 0.5, fruit.radius * 0.1, 0, 0, fruit.radius * 1.2);
+               gradient.addColorStop(0, '#FF4081'); // Pinkish red
+               gradient.addColorStop(0.7, '#D81B60'); // Darker red
+               gradient.addColorStop(1, '#AD1457'); // Deep red
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Sliced inner flesh
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, fruit.radius * 0.7, 0, Math.PI * 2); // Smaller inner circle
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.7);
+                    innerGradient.addColorStop(0, 'rgba(255, 200, 200, 0.9)'); // Light pink
+                    innerGradient.addColorStop(0.8, 'rgba(255, 150, 150, 0.8)'); // Medium pink
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+               }
+
+               // Yellow seeds
+               ctx.fillStyle = '#FFEB3B';
+               for (let i = 0; i < 15; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * fruit.radius * 0.8;
+                    ctx.beginPath();
+                    ctx.ellipse(Math.cos(angle) * dist, Math.sin(angle) * dist, fruit.radius * 0.04, fruit.radius * 0.08, angle, 0, Math.PI * 2);
+                    ctx.fill();
+               }
+          }
+
+          function drawKiwi(fruit) {
+               ctx.beginPath();
+               // Oval shape for kiwi
+               ctx.ellipse(0, 0, fruit.radius, fruit.radius * 0.7, 0, 0, Math.PI * 2);
+
+               // Fuzzy brown skin
+               const skinGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius);
+               skinGradient.addColorStop(0, '#8D6E63'); // Light brown
+               skinGradient.addColorStop(0.8, '#6D4C41'); // Medium brown
+               skinGradient.addColorStop(1, '#4E342E'); // Dark brown
+               ctx.fillStyle = skinGradient;
+               ctx.fill();
+
+               // Inner green flesh (for sliced pieces) - only if sliced
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, fruit.radius * 0.8, fruit.radius * 0.6, 0, 0, Math.PI * 2);
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.8);
+                    innerGradient.addColorStop(0, 'rgba(139, 195, 74, 0.9)'); // Light green
+                    innerGradient.addColorStop(0.7, 'rgba(76, 175, 80, 0.8)'); // Medium green
+                    innerGradient.addColorStop(1, 'rgba(56, 142, 60, 0.7)'); // Dark green
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+
+                    // Black seeds in a circle
+                    ctx.fillStyle = '#000000';
+                    const seedRingRadius = fruit.radius * 0.4;
+                    for (let i = 0; i < 12; i++) {
+                         const angle = (Math.PI * 2 / 12) * i;
+                         ctx.beginPath();
+                         ctx.arc(Math.cos(angle) * seedRingRadius, Math.sin(angle) * seedRingRadius, fruit.radius * 0.03, 0, Math.PI * 2);
+                         ctx.fill();
+                    }
+                    // White center
+                    ctx.beginPath();
+                    ctx.arc(0, 0, fruit.radius * 0.15, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.fill();
+               }
+          }
+
+          function drawMango(fruit) {
+               ctx.beginPath();
+               // Irregular oval shape for mango
+               ctx.moveTo(-fruit.radius * 0.5, -fruit.radius);
+               ctx.quadraticCurveTo(fruit.radius * 1.5, -fruit.radius * 1.2, fruit.radius * 1.2, fruit.radius * 0.5);
+               ctx.quadraticCurveTo(fruit.radius * 0.8, fruit.radius * 1.2, -fruit.radius * 0.8, fruit.radius);
+               ctx.quadraticCurveTo(-fruit.radius * 1.2, fruit.radius * 0.5, -fruit.radius * 0.5, -fruit.radius);
+               ctx.closePath();
+
+               // Yellow to orange to red gradient
+               const gradient = ctx.createLinearGradient(-fruit.radius, -fruit.radius, fruit.radius, fruit.radius);
+               gradient.addColorStop(0, '#FFEB3B'); // Yellow
+               gradient.addColorStop(0.5, '#FFC107'); // Amber
+               gradient.addColorStop(1, '#FF5722'); // Deep orange-red
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Sliced inner flesh
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, fruit.radius * 0.8, fruit.radius * 0.6, 0, 0, Math.PI * 2);
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.8);
+                    innerGradient.addColorStop(0, 'rgba(255, 255, 200, 0.9)'); // Light yellow
+                    innerGradient.addColorStop(0.8, 'rgba(255, 200, 100, 0.8)'); // Light orange
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+               }
+
+               // Stem
+               ctx.fillStyle = '#8B4513';
+               ctx.fillRect(-5, -fruit.radius - 8, 10, 15);
+          }
+
+          function drawGuava(fruit) {
+               ctx.beginPath();
+               // Slightly irregular round/oval shape
+               ctx.ellipse(0, 0, fruit.radius, fruit.radius * 0.9, 0, 0, Math.PI * 2);
+
+               // Green to yellow gradient
+               const gradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius);
+               gradient.addColorStop(0, '#C0CA33'); // Lime green
+               gradient.addColorStop(0.7, '#A2B42C'); // Darker lime
+               gradient.addColorStop(1, '#829A26'); // Olive green
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Inner pink/white flesh (for sliced pieces) - only if sliced
+               if (fruit.currentSliceLevel > 0) {
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, fruit.radius * 0.8, fruit.radius * 0.7, 0, 0, Math.PI * 2);
+                    const innerGradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius * 0.8);
+                    innerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); // White center
+                    innerGradient.addColorStop(0.5, 'rgba(255, 192, 203, 0.8)'); // Pink
+                    innerGradient.addColorStop(1, 'rgba(255, 105, 180, 0.7)'); // Hot pink
+                    ctx.fillStyle = innerGradient;
+                    ctx.fill();
+
+                    // Small black seeds
+                    ctx.fillStyle = '#000000';
+                    for (let i = 0; i < 20; i++) {
+                         const angle = Math.random() * Math.PI * 2;
+                         const dist = Math.random() * fruit.radius * 0.6;
+                         ctx.beginPath();
+                         ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, fruit.radius * 0.02, 0, Math.PI * 2);
+                         ctx.fill();
+                    }
+               }
+          }
+
+          function drawGenericFruit(fruit) {
+               ctx.beginPath();
+               ctx.arc(0, 0, fruit.radius, 0, Math.PI * 2);
+               const gradient = ctx.createRadialGradient(0, 0, fruit.radius * 0.1, 0, 0, fruit.radius);
+               gradient.addColorStop(0, `rgb(${hexToRgb(fruit.color)})`);
+               gradient.addColorStop(0.8, `rgb(${darkenColor(fruit.color, 30)})`);
+               gradient.addColorStop(1, `rgb(${darkenColor(fruit.color, 50)})`);
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Highlight
+               ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+               ctx.beginPath();
+               ctx.arc(-fruit.radius * 0.3, -fruit.radius * 0.3, fruit.radius * 0.4, 0, Math.PI * 2);
+               ctx.fill();
+          }
+
+          function drawBomb(bomb) {
+               ctx.beginPath();
+               ctx.arc(0, 0, bomb.radius, 0, Math.PI * 2);
+
+               // Radial gradient for bomb body (dark metallic)
+               const gradient = ctx.createRadialGradient(0, 0, bomb.radius * 0.2, 0, 0, bomb.radius);
+               gradient.addColorStop(0, '#555'); // Lighter gray center
+               gradient.addColorStop(0.6, '#222'); // Darker gray
+               gradient.addColorStop(1, '#000'); // Black edge
+               ctx.fillStyle = gradient;
+               ctx.fill();
+
+               // Metallic highlight/shine
+               ctx.beginPath();
+               ctx.arc(-bomb.radius * 0.4, -bomb.radius * 0.4, bomb.radius * 0.3, 0, Math.PI * 2);
+               ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; // Brighter highlight
+               ctx.fill();
+
+               // Fuse holder (small cylinder on top)
+               ctx.fillStyle = '#654321'; // Dark brown
+               ctx.fillRect(-bomb.radius * 0.1, -bomb.radius - 5, bomb.radius * 0.2, 10);
+
+               // Fuse (drawn by updateBombFuses separately for particle effect)
+          }
+
+          // Helper function to darken a hex color
+          function darkenColor(hex, percent) {
+               const rgb = hexToRgb(hex).split(',').map(Number);
+               const r = Math.max(0, rgb[0] - (rgb[0] * percent / 100));
+               const g = Math.max(0, rgb[1] - (rgb[1] * percent / 100));
+               const b = Math.max(0, rgb[2] - (rgb[2] * percent / 100));
+               return `${Math.floor(r)},${Math.floor(g)},${Math.floor(b)}`;
+          }
+
+          // Draw a single fruit or a sliced piece
+          function drawFruit(fruit) {
+               // Defensive check: ensure fruit object and its core properties are valid
+               if (!fruit || typeof fruit.x === 'undefined' || typeof fruit.y === 'undefined' ||
+                    typeof fruit.radius === 'undefined' || typeof fruit.color === 'undefined' ||
+                    (fruit.currentSliceLevel > 0 && typeof fruit.originalColor === 'undefined')) {
+                    console.error("Attempted to draw an invalid or incomplete fruit object:", fruit);
+                    return; // Skip drawing this invalid fruit
+               }
+
+               ctx.save();
+               ctx.translate(fruit.x, fruit.y);
+               ctx.rotate(fruit.rotation);
+
+               ctx.shadowBlur = 0; // Reset shadow for all fruits initially
+               if (fruit.isFrenzy && fruit.currentSliceLevel === 0) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = 'yellow';
+               }
+
+               // Call specific drawing function based on fruit type
+               if (fruit.isBomb) {
+                    drawBomb(fruit);
+               } else {
+                    switch (fruit.type) {
+                         case 'apple':
+                         case 'green_apple':
+                              drawApple(fruit);
+                              break;
+                         case 'watermelon':
+                              drawWatermelon(fruit);
+                              break;
+                         case 'banana':
+                         case 'frenzy_banana': // Use banana drawing for frenzy banana
+                              drawBanana(fruit);
+                              break;
+                         case 'orange':
+                              drawOrange(fruit);
+                              break;
+                         case 'lemon':
+                              drawLemon(fruit);
+                              break;
+                         case 'strawberry':
+                              drawStrawberry(fruit);
+                              break;
+                         case 'kiwi':
+                              drawKiwi(fruit);
+                              break;
+                         case 'mango':
+                              drawMango(fruit);
+                              break;
+                         case 'guava':
+                              drawGuava(fruit);
+                              break;
+                         default:
+                              drawGenericFruit(fruit); // Fallback
+                              break;
+                    }
+
+                    // Draw the "cut" face if it's a sliced piece (currentSliceLevel > 0)
+                    if (fruit.currentSliceLevel > 0) {
+                         // Inner flesh (lighter color, subtle texture effect)
+                         // This section is now handled within each specific fruit's drawing function
+                         // if they have a distinct inner appearance when sliced (e.g., watermelon, kiwi, guava).
+                         // For others, the default drawing with the original color will suffice.
+                    }
+               }
+
+               ctx.restore();
+
+               // Trail for all fruits/pieces
+               ctx.beginPath();
+               let trailRgbArray;
+               const trailColorString = hexToRgb(fruit.color);
+               if (typeof trailColorString === 'string' && trailColorString.includes(',')) {
+                    trailRgbArray = trailColorString.split(',');
+               } else {
+                    console.warn("hexToRgb did not return a valid comma-separated string for fruit.color:", fruit.color, "Result:", trailColorString);
+                    trailRgbArray = ['255', '255', '255']; // Default to white RGB array
+               }
+               ctx.strokeStyle = `rgba(${trailRgbArray[0]},${trailRgbArray[1]},${trailRgbArray[2]}, 0.5)`;
+               ctx.lineWidth = 3;
+               ctx.lineCap = 'round';
+               if (fruit.trail && fruit.trail.length > 1) { // Add check for fruit.trail existence
+                    ctx.moveTo(fruit.trail[0].x, fruit.trail[0].y);
+                    for (let i = 1; i < fruit.trail.length; i++) {
+                         ctx.lineTo(fruit.trail[i].x, fruit.trail[i].y);
+                    }
+               }
+               ctx.stroke();
+          }
+
+          // Update all particles
+          function updateParticles() {
+               for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+                    p.speedY += 0.1;
+                    p.speedX *= 0.99;
+                    p.speedY *= 0.99;
+                    p.life--;
+                    p.alpha = p.life / p.maxLife;
+                    ctx.fillStyle = p.color.replace(/, ?\d?\.?\d+\)$/, `, ${p.alpha})`);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (p.life <= 0) particles.splice(i, 1);
+               }
+          }
+
+          // New: Create juice splatter
+          function createJuiceSplatter(x, y, color) {
+               const splatterCount = 30; // Increased splatter count
+               const baseColor = hexToRgb(color);
+               for (let i = 0; i < splatterCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 3 + Math.random() * 6; // Increased speed for more splash
+                    juiceSplashes.push({
+                         x: x, y: y, size: 5 + Math.random() * 10, // Increased size
+                         color: `rgba(${baseColor}, 0.8)`,
+                         speedX: Math.cos(angle) * speed,
+                         speedY: Math.sin(angle) * speed,
+                         life: 120 + Math.floor(Math.random() * 60), // Life for ~3 seconds (60 frames/sec * 3 sec = 180)
+                         maxLife: 180
+                    });
+               }
+          }
+
+          // New: Update and draw juice splashes
+          function updateJuiceSplashes() {
+               for (let i = juiceSplashes.length - 1; i >= 0; i--) {
+                    const splash = juiceSplashes[i];
+                    splash.x += splash.speedX;
+                    splash.y += splash.speedY;
+                    splash.speedY += 0.3; // Increased gravity for juice splashes
+                    splash.life--;
+                    splash.alpha = splash.life / splash.maxLife;
+                    ctx.fillStyle = splash.color.replace(/, ?\d?\.?\d+\)$/, `, ${splash.alpha})`);
+                    ctx.beginPath();
+                    ctx.arc(splash.x, splash.y, splash.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (splash.life <= 0) juiceSplashes.splice(i, 1);
+               }
+          }
+
+          // New: Update and draw bomb fuse particles
+          function updateBombFuses() {
+               for (let i = bombFuses.length - 1; i >= 0; i--) {
+                    const fuse = bombFuses[i];
+
+                    // Update fuse position based on parent bomb's position
+                    if (fuse.parentBomb) {
+                         // Approximate fuse tip relative to bomb center
+                         // Corrected from fuse.parent.y to fuse.parentBomb.y
+                         fuse.x = fuse.parentBomb.x;
+                         fuse.y = fuse.parentBomb.y - fuse.parentBomb.radius - (fuse.parentBomb.radius / 2) - 10;
+                    } else {
+                         // If bomb is gone, let fuse fall off screen
+                         fuse.x += fuse.speedX;
+                         fuse.y += fuse.speedY;
+                         fuse.speedY += 0.1; // Apply gravity
+                    }
+
+                    fuse.life--;
+                    fuse.alpha = fuse.life / fuse.maxLife;
+
+                    // Draw the spark
+                    ctx.fillStyle = fuse.color.replace(/, ?\d?\.?\d+\)$/, `, ${fuse.alpha})`);
+                    ctx.beginPath();
+                    ctx.arc(fuse.x + (Math.random() - 0.5) * 2, fuse.y + (Math.random() - 0.5) * 2, fuse.size + Math.random() * 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    if (fuse.life <= 0) {
+                         bombFuses.splice(i, 1);
+                    }
+               }
+          }
+
+
+          // Draw the slicing path
+          function drawSlicePath() {
+               if (slicePath.length < 2) return;
+               ctx.beginPath();
+               // Enhanced slice path: gradient or more vibrant
+               const gradient = ctx.createLinearGradient(slicePath[0].x, slicePath[0].y, slicePath[slicePath.length - 1].x, slicePath[slicePath.length - 1].y);
+               gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+               gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.9)');
+               gradient.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
+               ctx.strokeStyle = gradient;
+
+               ctx.lineWidth = 8; // Thicker slice line
+               ctx.lineCap = 'round';
+               ctx.shadowBlur = 20; // Increased blur for more glow
+               ctx.shadowColor = 'rgba(255, 255, 255, 0.9)'; // More vibrant glow
+               ctx.moveTo(slicePath[0].x, slicePath[0].y);
+               for (let i = 1; i < slicePath.length; i++) {
+                    ctx.lineTo(slicePath[i].x, slicePath[i].y);
+               }
+               ctx.stroke();
+               ctx.shadowBlur = 0;
+          }
+
+          // New function to draw combo messages
+          function drawComboMessages() {
+               for (let i = comboMessages.length - 1; i >= 0; i--) {
+                    const msg = comboMessages[i];
+                    ctx.save();
+                    ctx.font = 'bold 48px Arial';
+                    ctx.fillStyle = `rgba(255, 223, 0, ${msg.alpha})`;
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = 'black';
+                    ctx.shadowBlur = 10;
+                    ctx.fillText(msg.text, msg.x, msg.y);
+                    ctx.restore();
+
+                    msg.life--;
+                    msg.alpha = msg.life / 60;
+                    msg.y -= 1; // Move message up
+
+                    if (msg.life <= 0) {
+                         comboMessages.splice(i, 1);
+                    }
+               }
+          }
+
+          // Handle slicing (mouse/touch move)
+          function handleSlice(e) {
+               if (!gameRunning || !isSlicing || gamePaused || isBombExploding) return; // Prevent slicing during explosion
+
+               let clientX, clientY;
+               if (e.type.startsWith('touch')) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+               } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+               }
+
+               slicePath.push({ x: clientX, y: clientY });
+               if (slicePath.length > 15) slicePath.shift();
+
+               for (let i = fruits.length - 1; i >= 0; i--) {
+                    const fruit = fruits[i];
+                    // Check if fruit still exists in array (might have been removed by another slice in same frame)
+                    if (fruits.indexOf(fruit) === -1) continue;
+
+                    const dist = Math.sqrt((clientX - fruit.x) ** 2 + (clientY - fruit.y) ** 2);
+
+                    if (dist <= fruit.radius) {
+                         if (fruit.isBomb) {
+                              // Bomb hit logic
+                              isBombExploding = true; // Set flag to pause game
+                              cancelAnimationFrame(animationId); // Stop game loop immediately
+                              clearInterval(gameTimerIntervalId); // Stop timer
+                              backgroundMusic.pause();
+
+                              if (bombSound.src) {
+                                   bombSound.currentTime = 0;
+                                   bombSound.play().catch(e => console.error("Error playing bomb sound:", e));
+                              } else {
+                                   console.warn("Bomb sound source not set. Cannot play.");
+                              }
+                              createBombExplosion(fruit);
+                              gameContainer.classList.add('screen-shake'); // Trigger screen shake
+
+                              // Remove bomb from array
+                              fruits.splice(i, 1);
+
+                              // End game after a short delay to let explosion animation play
+                              setTimeout(() => {
+                                   gameContainer.classList.remove('screen-shake'); // Stop screen shake
+                                   endGame();
+                              }, 800); // Adjust delay as needed for explosion animation
+
+                         } else {
+                              // Fruit slicing logic
+                              if (sliceSound.src) {
+                                   sliceSound.currentTime = 0;
+                                   sliceSound.play().catch(e => console.error("Error playing slice sound:", e));
+                              } else {
+                                   console.warn("Slice sound source not set. Cannot play.");
+                              }
+                              if (splashSound.src) {
+                                   splashSound.currentTime = 0;
+                                   splashSound.play().catch(e => console.error("Error playing splash sound:", e));
+                              } else {
+                                   console.warn("Splash sound source not set. Cannot play.");
+                              }
+                              // Removed createParticles(fruit);
+                              createJuiceSplatter(fruit.x, fruit.y, fruit.originalColor); // Juice splatter at slice point
+
+                              // Check if the fruit can be sliced further
+                              if (fruit.currentSliceLevel < fruit.maxSliceLevels) {
+                                   // Calculate new radius for pieces
+                                   const newRadius = fruit.radius * 0.7; // Pieces are 70% of current radius
+                                   const newPoints = fruit.basePoints / (2 ** (fruit.currentSliceLevel + 1)); // Divide original points among final pieces
+
+                                   // Calculate slice angle based on current slice path
+                                   let sliceAngle = 0;
+                                   if (slicePath.length >= 2) {
+                                        const lastPoint = slicePath[slicePath.length - 1];
+                                        const secondLastPoint = slicePath[slicePath.length - 2];
+                                        sliceAngle = Math.atan2(lastPoint.y - secondLastPoint.y, lastPoint.x - secondLastPoint.x);
+                                   } else {
+                                        sliceAngle = Math.random() * Math.PI * 2;
+                                   }
+
+                                   // Divergence speed for pieces, influenced by original speed and mass
+                                   const divergenceMagnitude = 1 + Math.random() * 1 - (fruit.mass * 0.2); // Reduced divergence
+                                   const perpendicularAngle1 = sliceAngle + Math.PI / 2;
+                                   const perpendicularAngle2 = sliceAngle - Math.PI / 2;
+
+                                   // Calculate initial speeds for new pieces
+                                   // Sliced pieces now primarily drop downwards
+                                   const pieceSpeedX1 = fruit.speedX + Math.cos(perpendicularAngle1) * divergenceMagnitude;
+                                   const pieceSpeedY1 = fruit.speedY + Math.sin(perpendicularAngle1) * divergenceMagnitude + (fruit.currentSliceLevel === 0 ? 8 : 4); // Increased downward boost
+                                   const pieceSpeedX2 = fruit.speedX + Math.cos(perpendicularAngle2) * divergenceMagnitude;
+                                   const pieceSpeedY2 = fruit.speedY + Math.sin(perpendicularAngle2) * divergenceMagnitude + (fruit.currentSliceLevel === 0 ? 8 : 4); // Increased downward boost
+
+                                   // Create two new pieces
+                                   const piece1 = {
+                                        x: fruit.x + Math.cos(perpendicularAngle1) * newRadius * 0.3, // Offset slightly
+                                        y: fruit.y + Math.sin(perpendicularAngle1) * newRadius * 0.3,
+                                        radius: newRadius,
+                                        color: fruit.originalColor,
+                                        basePoints: fruit.basePoints,
+                                        currentPoints: newPoints,
+                                        isBomb: false,
+                                        isFrenzy: false,
+                                        speedX: pieceSpeedX1,
+                                        speedY: pieceSpeedY1,
+                                        rotation: Math.random() * Math.PI * 2,
+                                        rotationSpeed: (Math.random() - 0.5) * 0.5,
+                                        currentSliceLevel: fruit.currentSliceLevel + 1,
+                                        maxSliceLevels: fruit.maxSliceLevels,
+                                        originalColor: fruit.originalColor,
+                                        originalRadius: fruit.originalRadius,
+                                        type: fruit.type,
+                                        mass: fruit.mass // Inherit mass
+                                   };
+
+                                   const piece2 = {
+                                        x: fruit.x + Math.cos(perpendicularAngle2) * newRadius * 0.3,
+                                        y: fruit.y + Math.sin(perpendicularAngle2) * newRadius * 0.3,
+                                        radius: newRadius,
+                                        color: fruit.originalColor,
+                                        basePoints: fruit.basePoints,
+                                        currentPoints: newPoints,
+                                        isBomb: false,
+                                        isFrenzy: false,
+                                        speedX: pieceSpeedX2,
+                                        speedY: pieceSpeedY2,
+                                        rotation: Math.random() * Math.PI * 2,
+                                        rotationSpeed: (Math.random() - 0.5) * 0.5,
+                                        currentSliceLevel: fruit.currentSliceLevel + 1,
+                                        maxSliceLevels: fruit.maxSliceLevels,
+                                        originalColor: fruit.originalColor,
+                                        originalRadius: fruit.originalRadius,
+                                        type: fruit.type,
+                                        mass: fruit.mass // Inherit mass
+                                   };
+
+                                   // Add new pieces to the fruits array
+                                   fruits.push(piece1, piece2);
+
+                                   // Remove the original fruit from the array as it's now replaced by pieces
+                                   fruits.splice(fruits.indexOf(fruit), 1);
+
+                                   score += Math.floor(fruit.currentPoints); // Add points for the piece that was just sliced, convert to integer
+                                   scoreDisplay.textContent = score; // Update score display as integer
+                                   currentCombo++;
+
+                                   // If it was an original frenzy fruit, trigger frenzy mode
+                                   if (fruit.isFrenzy && fruit.currentSliceLevel === 0) {
+                                        triggerFrenzyMode();
+                                   }
+
+                              } else {
+                                   // If max slice level reached, this piece is "destroyed"
+                                   // Remove it from the array
+                                   fruits.splice(fruits.indexOf(fruit), 1);
+
+                                   score += Math.floor(fruit.currentPoints); // Add points for the final piece, convert to integer
+                                   scoreDisplay.textContent = score; // Update score display as integer
+                                   currentCombo++;
+                              }
+                         }
+                    }
+               }
+          }
+
+          // Create particles when fruit is sliced
+          function createParticles(fruit) {
+               const particleCount = 30;
+               const baseColor = hexToRgb(fruit.color);
+               for (let i = 0; i < particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 2 + Math.random() * 4;
+                    particles.push({
+                         x: fruit.x + Math.cos(angle) * fruit.radius * 0.5,
+                         y: fruit.y + Math.sin(angle) * fruit.radius * 0.5,
+                         size: 2 + Math.random() * 5,
+                         color: `rgba(${baseColor}, 0.8)`,
+                         speedX: Math.cos(angle) * speed,
+                         speedY: Math.sin(angle) * speed,
+                         life: 40 + Math.floor(Math.random() * 60),
+                         maxLife: 100
+                    });
+               }
+          }
+
+          // Create specific explosion particles for bombs
+          function createBombExplosion(bomb) {
+               const explosionColors = ['#FF4500', '#FFD700', '#FF6347', '#FFA500', '#FFA07A']; // More fiery colors
+               for (let i = 0; i < 120; i++) { // More particles
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 5 + Math.random() * 15; // Faster, more spread out
+                    const color = hexToRgb(explosionColors[Math.floor(Math.random() * explosionColors.length)]); // Ensure color is processed
+                    particles.push({
+                         x: bomb.x, y: bomb.y, size: 3 + Math.random() * 10, // Larger particles
+                         color: `rgba(${color}, 0.9)`, speedX: Math.cos(angle) * speed,
+                         speedY: Math.sin(angle) * speed - 5, // Upward initial burst
+                         life: 60 + Math.floor(Math.random() * 100), // Longer life
+                         maxLife: 160
+                    });
+               }
+               // Add a temporary white flash effect
+               const flashEffect = {
+                    x: canvas.width / 2, y: canvas.height / 2,
+                    alpha: 1, life: 10, maxLife: 10,
+                    draw: function () {
+                         ctx.save();
+                         ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                         ctx.fillRect(0, 0, canvas.width, canvas.height);
+                         ctx.restore();
+                    },
+                    update: function () {
+                         this.life--;
+                         this.alpha = this.life / this.maxLife;
+                    }
+               };
+               particles.push(flashEffect); // Add flash as a temporary "particle"
+          }
+
+          // New function to trigger frenzy mode
+          function triggerFrenzyMode() {
+               if (frenzyModeActive) return;
+               frenzyModeActive = true;
+               normalSpawnInterval = spawnInterval;
+
+               gameContainer.classList.add('frenzy-active');
+
+               clearTimeout(frenzyTimer);
+               frenzyTimer = setTimeout(() => {
+                    frenzyModeActive = false;
+                    spawnInterval = normalSpawnInterval;
+                    gameContainer.classList.remove('frenzy-active');
+               }, 5000); // 5 seconds of frenzy
+          }
+
+          // Convert hex color to rgb string
+          function hexToRgb(hex) {
+               // Ensure 'hex' is treated as a string, even if it's undefined or null
+               const inputHex = String(hex);
+
+               if (inputHex.startsWith('#')) {
+                    const r = parseInt(inputHex.slice(1, 3), 16);
+                    const g = parseInt(inputHex.slice(3, 5), 16);
+                    const b = parseInt(inputHex.slice(5, 7), 16);
+                    // Ensure parsed values are valid numbers, otherwise default to 0
+                    return `${isNaN(r) ? 0 : r},${isNaN(g) ? 0 : g},${isNaN(b) ? 0 : b}`;
+               }
+
+               // Handle rgba/rgb strings
+               const rgbaMatch = inputHex.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d?\.?\d+))?\)/);
+               if (rgbaMatch) {
+                    // Return only RGB parts, as alpha is handled separately in rgba() string construction
+                    return `${rgbaMatch[1]},${rgbaMatch[2]},${rgbaMatch[3]}`;
+               }
+
+               // Handle named colors like 'gold'
+               if (inputHex === 'gold') {
+                    return '255,215,0'; // RGB for gold
+               }
+
+               // If none of the above, return a default RGB string.
+               // This is the final fallback and should always return a valid string.
+               return '255,255,255';
+          }
+
+          // End the game
+          function endGame() {
+               gameRunning = false;
+               cancelAnimationFrame(animationId);
+               clearInterval(gameTimerIntervalId);
+               backgroundMusic.pause();
+               // Check if source is set before playing
+               if (gameoverSound.src) {
+                    gameoverSound.currentTime = 0;
+                    gameoverSound.play().catch(e => console.error("Error playing gameover sound:", e));
+               } else {
+                    console.warn("Gameover sound source not set. Cannot play.");
+               }
+
+               clearTimeout(frenzyTimer);
+               frenzyModeActive = false;
+               gameContainer.classList.remove('frenzy-active');
+               gameContainer.classList.remove('screen-shake'); // Ensure shake is removed
+               isBombExploding = false; // Reset bomb explosion flag
+
+               finalScoreDisplay.textContent = `Score: ${score}`; // Display as integer
+
+               // Show main menu elements (including floating icons)
+               showMainMenuElements();
+               // Hide other game control screens
+               hideGameControlScreens();
+
+               // Show control panel and game over screen
+               controlPanel.style.display = 'block'; // Ensure control panel is visible
+               gameOverScreen.style.display = 'block';
+               controlPanel.style.opacity = '1';
+               controlPanel.style.pointerEvents = 'auto';
+
+               scoreDisplayContainer.style.display = 'none'; // Hide score container
+               pauseBtn.style.display = 'none';
+               timerDisplay.style.display = 'none';
+
+               document.body.classList.remove('game-active');
+
+               if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('fruitNinjaHighScore', highScore); // Store as integer
+                    highScoreDisplay.textContent = `Best: ${highScore}`; // Display as integer
+               }
+          }
+
+          function handleSliceEnd() {
+               if (currentCombo > 1) {
+                    const bonus = currentCombo * 5;
+                    score += Math.floor(bonus); // Convert bonus to integer
+                    scoreDisplay.textContent = score; // Update score display as integer
+                    comboMessages.push({
+                         text: `Combo x${currentCombo}! +${Math.floor(bonus)}`, // Display bonus as integer
+                         x: canvas.width / 2, y: canvas.height / 2,
+                         alpha: 1, life: 60
+                    });
+               }
+               currentCombo = 0;
+               isSlicing = false;
+               slicePath = [];
+          }
+
+          // Function to go back to the main menu (now the startScreen)
+          function goToMainMenu() {
+               playButtonClickSound();
+               gameRunning = false;
+               cancelAnimationFrame(animationId);
+               clearInterval(gameTimerIntervalId);
+               gamePaused = false;
+               pauseBtn.innerHTML = '<span class="fas fa-pause"></span>';
+
+               clearTimeout(frenzyTimer);
+               frenzyModeActive = false;
+               gameContainer.classList.remove('frenzy-active');
+               gameContainer.classList.remove('screen-shake'); // Ensure no lingering shake
+               backgroundMusic.pause();
+               backgroundMusic.currentTime = 0;
+
+               // Clear all game-related arrays and the canvas
+               fruits = [];
+               particles = [];
+               juiceSplashes = [];
+               bombFuses = [];
+               ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+               showMainMenuElements(); // Show all main menu elements (including floating icons)
+               hideGameControlScreens(); // Hide game over and pause screens
+
+               // Hide game-specific UI elements that should not be on main menu
+               scoreDisplayContainer.style.display = 'flex'; // Keep score container visible
+               scoreDisplay.style.display = 'none'; // Hide current score on main menu
+               scoreWatermelonEmoji.style.display = 'none'; // Hide emoji on main menu
+               highScoreDisplay.textContent = `Best: ${highScore}`; // Display as integer
+               highScoreDisplay.style.display = 'block'; // Ensure high score is visible
+               pauseBtn.style.display = 'none';
+               timerDisplay.style.display = 'none';
+
+               document.body.classList.remove('game-active');
+          }
+
+
+          // Function to handle quitting the game
+          function quitGame() {
+               playButtonClickSound();
+               showMessage('Quitting the game...');
+               // In a real application, this might close the window or return to a launcher.
+               // For web browsers, direct closing is usually prevented for security.
+               // window.close(); // This will only work if the window was opened by script
+          }
+
+          // Event listeners (attached once on load)
+          window.onload = function () {
+               console.log("Script loaded and window.onload fired!");
+               resizeCanvas();
+               highScoreDisplay.textContent = `Best: ${highScore}`; // Display as integer
+
+               // Initially show the main menu elements
+               showMainMenuElements();
+               // Initially hide game control screens
+               hideGameControlScreens();
+
+               // Set initial score display visibility for main menu
+               scoreDisplayContainer.style.display = 'flex';
+               scoreDisplay.style.display = 'none'; // Hide current score on main menu
+               scoreWatermelonEmoji.style.display = 'none'; // Hide emoji on main menu
+               highScoreDisplay.style.display = 'block'; // Ensure high score is visible
+
+               document.body.classList.remove('game-active');
+
+               applyVolumes();
+
+               // Attach all event listeners here, as elements are now persistent
+               // Main menu buttons
+               playButton.addEventListener('click', initGame);
+               optionsButton.addEventListener('click', openSoundModal); // Options button opens sound modal
+               quitButton.addEventListener('click', quitGame);
+
+               // Existing game buttons
+               restartBtn.addEventListener('click', initGame);
+               mainMenuBtn.addEventListener('click', goToMainMenu);
+               pauseBtn.addEventListener('click', togglePause);
+               soundModalCloseBtn.addEventListener('click', closeSoundModal);
+               gameoverSoundBtn.addEventListener('click', openSoundModal); // For game over screen
+               pauseSoundBtn.addEventListener('click', openSoundModal); // For pause screen
+               resetGameBtn.addEventListener('click', initGame); // For pause screen
+               resumeBtn.addEventListener('click', togglePause); // For pause screen
+               pauseMainMenuBtn.addEventListener('click', goToMainMenu); // For pause screen
+
+
+               // Slider change listeners
+               musicVolumeSlider.addEventListener('input', (e) => {
+                    musicVolume = parseFloat(e.target.value);
+                    backgroundMusic.volume = musicVolume;
+                    saveVolumes();
+               });
+
+               sfxVolumeSlider.addEventListener('input', (e) => {
+                    sfxVolume = parseFloat(e.target.value);
+                    sliceSound.volume = sfxVolume;
+                    bombSound.volume = sfxVolume;
+                    gameoverSound.volume = sfxVolume;
+                    splashSound.volume = sfxVolume;
+                    saveVolumes();
+               });
+
+               uiVolumeSlider.addEventListener('input', (e) => {
+                    uiVolume = parseFloat(e.target.value);
+                    buttonClickSound.volume = uiVolume;
+                    saveVolumes();
+               });
+
+
+               canvas.addEventListener('mousedown', (e) => {
+                    if (soundModal.style.display === 'flex' || isBombExploding) return; // Prevent slicing during explosion
+                    isSlicing = true;
+                    slicePath = [{ x: e.clientX, y: e.clientY }];
+                    currentCombo = 0;
+                    handleSlice(e);
+               });
+               canvas.addEventListener('mousemove', handleSlice);
+               canvas.addEventListener('mouseup', handleSliceEnd);
+               canvas.addEventListener('mouseleave', () => {
+                    if (isSlicing) handleSliceEnd();
+               });
+
+               canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (soundModal.style.display === 'flex' || isBombExploding) return; // Prevent slicing during explosion
+                    isSlicing = true;
+                    slicePath = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }];
+                    currentCombo = 0;
+                    handleSlice(e);
+               });
+               canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    handleSlice(e);
+               });
+               canvas.addEventListener('touchend', handleSliceEnd);
+               canvas.addEventListener('touchcancel', () => {
+                    if (isSlicing) handleSliceEnd();
+               });
+          };
+
+          window.addEventListener('resize', resizeCanvas);
+
+          // NOTE ON AUDIO ERRORS:
+          // The "NotSupportedError: The element has no supported sources." error often occurs because
+          // external audio links (like the mixkit.co preview links here) might have
+          // Cross-Origin Resource Sharing (CORS) restrictions, or the browser environment
+          // (especially within an iframe) might not allow direct loading of these specific files.
+          //
+          // To fix this, consider the following:
+          // 1. Host your audio files on a server you control with proper CORS headers.
+          // 2. Use a dedicated CDN (Content Data Network) that allows direct embedding.
+          // 3. For simple sound effects, you could explore Web Audio API or libraries like Tone.js
+          //    to synthesize sounds directly in the browser, avoiding external file loading.
+          // 4. Ensure the audio files themselves are valid and not corrupted.
+     </script>
+</body>
+
+</html>
